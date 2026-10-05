@@ -143,7 +143,12 @@ namespace DS3ConnectionInfo
             playerData.Clear();
 
             foreach (Player p in Player.ActivePlayers().OrderBy(p => p.TeamAlliegance))
+            {
+                // Query only while at least one Steam field is enabled.
+                if (Settings.Default.OverlayColVisibility.Cast<string>().Skip(20).Any(v => v == "Visible"))
+                    _ = p.EnsureSteamInfoAsync();
                 playerData.Add(p);
+            }
 
             // Update session info column sizes
             foreach (var col in dataGridSession.Columns)

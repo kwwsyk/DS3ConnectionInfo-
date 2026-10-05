@@ -312,6 +312,27 @@
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="{Binding [SteamPrivacy], Source={x:Static local:UiText.Current}, Mode=OneWay}" IsReadOnly="True">
+                    <DataGridTemplateColumn.CellTemplate><DataTemplate><local:OverlayTextBlock Text="{Binding SteamPrivacyText}" Style="{StaticResource defaultStyle}" ToolTip="{Binding SteamPrivacyDetail}"><local:OverlayTextBlock.Fill><MultiBinding Converter="{StaticResource FieldColorConverter}" ConverterParameter="20"><Binding Source="{x:Static local:Settings.Default}" Path="OverlayColumnColors" /><Binding Source="{x:Static local:Settings.Default}" Path="TextColor" /></MultiBinding></local:OverlayTextBlock.Fill></local:OverlayTextBlock></DataTemplate></DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn Header="{Binding [EldenRing], Source={x:Static local:UiText.Current}, Mode=OneWay}" IsReadOnly="True">
+                    <DataGridTemplateColumn.CellTemplate><DataTemplate><StackPanel Orientation="Horizontal" DataContext="{Binding EldenRingBadge}" ToolTip="{Binding Detail}" Margin="4,0">
+                                    <Border Width="26" Height="26" BorderThickness="2" BorderBrush="{Binding FrameBrush}" Visibility="{Binding IconVisibility}" Margin="0,0,3,0" VerticalAlignment="Center">
+                                        <Image Source="{Binding IconUri}" Stretch="UniformToFill" />
+                                    </Border><local:OverlayTextBlock Text="{Binding Text}" Style="{StaticResource defaultStyle}"><local:OverlayTextBlock.Fill><MultiBinding Converter="{StaticResource FieldColorConverter}" ConverterParameter="21"><Binding Source="{x:Static local:Settings.Default}" Path="OverlayColumnColors" /><Binding Source="{x:Static local:Settings.Default}" Path="TextColor" /></MultiBinding></local:OverlayTextBlock.Fill></local:OverlayTextBlock></StackPanel></DataTemplate></DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn Header="{Binding [Nightreign], Source={x:Static local:UiText.Current}, Mode=OneWay}" IsReadOnly="True">
+                    <DataGridTemplateColumn.CellTemplate><DataTemplate><StackPanel Orientation="Horizontal" DataContext="{Binding NightreignBadge}" ToolTip="{Binding Detail}" Margin="4,0">
+                                    <Border Width="26" Height="26" BorderThickness="2" BorderBrush="{Binding FrameBrush}" Visibility="{Binding IconVisibility}" Margin="0,0,3,0" VerticalAlignment="Center">
+                                        <Image Source="{Binding IconUri}" Stretch="UniformToFill" />
+                                    </Border><local:OverlayTextBlock Text="{Binding Text}" Style="{StaticResource defaultStyle}"><local:OverlayTextBlock.Fill><MultiBinding Converter="{StaticResource FieldColorConverter}" ConverterParameter="22"><Binding Source="{x:Static local:Settings.Default}" Path="OverlayColumnColors" /><Binding Source="{x:Static local:Settings.Default}" Path="TextColor" /></MultiBinding></local:OverlayTextBlock.Fill></local:OverlayTextBlock></StackPanel></DataTemplate></DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn Header="{Binding [Wukong], Source={x:Static local:UiText.Current}, Mode=OneWay}" IsReadOnly="True">
+                    <DataGridTemplateColumn.CellTemplate><DataTemplate><StackPanel Orientation="Horizontal" DataContext="{Binding WukongBadge}" ToolTip="{Binding Detail}" Margin="4,0">
+                                    <Border Width="26" Height="26" BorderThickness="2" BorderBrush="{Binding FrameBrush}" Visibility="{Binding IconVisibility}" Margin="0,0,3,0" VerticalAlignment="Center">
+                                        <Image Source="{Binding IconUri}" Stretch="UniformToFill" />
+                                    </Border><local:OverlayTextBlock Text="{Binding Text}" Style="{StaticResource defaultStyle}"><local:OverlayTextBlock.Fill><MultiBinding Converter="{StaticResource FieldColorConverter}" ConverterParameter="23"><Binding Source="{x:Static local:Settings.Default}" Path="OverlayColumnColors" /><Binding Source="{x:Static local:Settings.Default}" Path="TextColor" /></MultiBinding></local:OverlayTextBlock.Fill></local:OverlayTextBlock></StackPanel></DataTemplate></DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
             </DataGrid.Columns>
         </DataGrid>
     </StackPanel>

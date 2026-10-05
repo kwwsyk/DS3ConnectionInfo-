@@ -130,7 +130,28 @@
                         <DataGridTextColumn Header="{Binding [Intelligence], Source={x:Static local:UiText.Current}, Mode=OneWay}" IsReadOnly="True" Binding="{Binding Intelligence, TargetNullValue=—}" ElementStyle="{StaticResource textCenter}" />
                         <DataGridTextColumn Header="{Binding [Faith], Source={x:Static local:UiText.Current}, Mode=OneWay}" IsReadOnly="True" Binding="{Binding Faith, TargetNullValue=—}" ElementStyle="{StaticResource textCenter}" />
                         <DataGridTextColumn Header="{Binding [Health], Source={x:Static local:UiText.Current}, Mode=OneWay}" IsReadOnly="True" Binding="{Binding Health, TargetNullValue=—}" ElementStyle="{StaticResource textCenter}" />
-                    </DataGrid.Columns>
+                                    <DataGridTemplateColumn Header="{Binding [SteamPrivacy], Source={x:Static local:UiText.Current}, Mode=OneWay}" IsReadOnly="True">
+                    <DataGridTemplateColumn.CellTemplate><DataTemplate><TextBlock Text="{Binding SteamPrivacy}" FontFamily="Segoe UI, Segoe UI Emoji" ToolTip="{Binding SteamPrivacyDetail}" VerticalAlignment="Center" /></DataTemplate></DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn Header="{Binding [EldenRing], Source={x:Static local:UiText.Current}, Mode=OneWay}" IsReadOnly="True">
+                    <DataGridTemplateColumn.CellTemplate><DataTemplate><StackPanel Orientation="Horizontal" DataContext="{Binding EldenRingBadge}" ToolTip="{Binding Detail}" Margin="4,0">
+                                    <Border Width="26" Height="26" BorderThickness="2" BorderBrush="{Binding FrameBrush}" Visibility="{Binding IconVisibility}" Margin="0,0,3,0" VerticalAlignment="Center">
+                                        <Image Source="{Binding IconUri}" Stretch="UniformToFill" />
+                                    </Border><TextBlock Text="{Binding Text}" VerticalAlignment="Center"></TextBlock></StackPanel></DataTemplate></DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn Header="{Binding [Nightreign], Source={x:Static local:UiText.Current}, Mode=OneWay}" IsReadOnly="True">
+                    <DataGridTemplateColumn.CellTemplate><DataTemplate><StackPanel Orientation="Horizontal" DataContext="{Binding NightreignBadge}" ToolTip="{Binding Detail}" Margin="4,0">
+                                    <Border Width="26" Height="26" BorderThickness="2" BorderBrush="{Binding FrameBrush}" Visibility="{Binding IconVisibility}" Margin="0,0,3,0" VerticalAlignment="Center">
+                                        <Image Source="{Binding IconUri}" Stretch="UniformToFill" />
+                                    </Border><TextBlock Text="{Binding Text}" VerticalAlignment="Center"></TextBlock></StackPanel></DataTemplate></DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                <DataGridTemplateColumn Header="{Binding [Wukong], Source={x:Static local:UiText.Current}, Mode=OneWay}" IsReadOnly="True">
+                    <DataGridTemplateColumn.CellTemplate><DataTemplate><StackPanel Orientation="Horizontal" DataContext="{Binding WukongBadge}" ToolTip="{Binding Detail}" Margin="4,0">
+                                    <Border Width="26" Height="26" BorderThickness="2" BorderBrush="{Binding FrameBrush}" Visibility="{Binding IconVisibility}" Margin="0,0,3,0" VerticalAlignment="Center">
+                                        <Image Source="{Binding IconUri}" Stretch="UniformToFill" />
+                                    </Border><TextBlock Text="{Binding Text}" VerticalAlignment="Center"></TextBlock></StackPanel></DataTemplate></DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
                 </DataGrid>
             </mah:MetroTabItem>
             <mah:MetroTabItem Header="{Binding [Settings], Source={x:Static local:UiText.Current}, Mode=OneWay}" IsEnabled="True">
@@ -242,7 +263,11 @@
                                 <ComboBoxItem Content="{Binding [Intelligence], Source={x:Static local:UiText.Current}, Mode=OneWay}" />
                                 <ComboBoxItem Content="{Binding [Faith], Source={x:Static local:UiText.Current}, Mode=OneWay}" />
                                 <ComboBoxItem Content="{Binding [Health], Source={x:Static local:UiText.Current}, Mode=OneWay}" />
-                            </ComboBox>
+                            <ComboBoxItem Content="{Binding [SteamPrivacy], Source={x:Static local:UiText.Current}, Mode=OneWay}" />
+<ComboBoxItem Content="{Binding [EldenRing], Source={x:Static local:UiText.Current}, Mode=OneWay}" />
+<ComboBoxItem Content="{Binding [Nightreign], Source={x:Static local:UiText.Current}, Mode=OneWay}" />
+<ComboBoxItem Content="{Binding [Wukong], Source={x:Static local:UiText.Current}, Mode=OneWay}" />
+</ComboBox>
                             <mah:ToggleSwitch Margin="10 0" Grid.Row="5" Grid.Column="1" IsOn="True" OnContent="{Binding [Shown], Source={x:Static local:UiText.Current}, Mode=OneWay}" OffContent="{Binding [Hidden], Source={x:Static local:UiText.Current}, Mode=OneWay}" Name="swColVisible" Toggled="swColVisible_Toggled"></mah:ToggleSwitch>
                             <Label Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="2" Width="{Binding ElementName=gridSessInfoSettings, Path=ActualWidth}">
                                 <TextBlock TextWrapping="Wrap" Name="textColDesc" FontStyle="Italic"></TextBlock>
@@ -391,7 +416,11 @@
                                 <ComboBoxItem Content="{Binding [Intelligence], Source={x:Static local:UiText.Current}, Mode=OneWay}" />
                                 <ComboBoxItem Content="{Binding [Faith], Source={x:Static local:UiText.Current}, Mode=OneWay}" />
                                 <ComboBoxItem Content="{Binding [Health], Source={x:Static local:UiText.Current}, Mode=OneWay}" />
-                        </ComboBox>
+                        <ComboBoxItem Content="{Binding [SteamPrivacy], Source={x:Static local:UiText.Current}, Mode=OneWay}" />
+<ComboBoxItem Content="{Binding [EldenRing], Source={x:Static local:UiText.Current}, Mode=OneWay}" />
+<ComboBoxItem Content="{Binding [Nightreign], Source={x:Static local:UiText.Current}, Mode=OneWay}" />
+<ComboBoxItem Content="{Binding [Wukong], Source={x:Static local:UiText.Current}, Mode=OneWay}" />
+</ComboBox>
                         <StackPanel Grid.Row="19" Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                             <mah:ToggleSwitch Margin="10 0" IsOn="True" OnContent="{Binding [Shown], Source={x:Static local:UiText.Current}, Mode=OneWay}" OffContent="{Binding [Hidden], Source={x:Static local:UiText.Current}, Mode=OneWay}" Name="swOColVisible" Toggled="swOColVisible_Toggled"></mah:ToggleSwitch>
                             <mah:ColorPicker Name="fieldColorPicker" Width="125" Margin="0 0 5 0"

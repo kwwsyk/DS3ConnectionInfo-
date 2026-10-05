@@ -404,6 +404,10 @@ namespace DS3ConnectionInfo {
   <string>智力：读取本地同步的角色数据。</string>
   <string>信仰：读取本地同步的角色数据。</string>
   <string>角色当前血量 / 当前有效最大生命值；未加载时显示 —。</string>
+  <string>账号公开性</string>
+  <string>艾尔登法环</string>
+  <string>艾尔登法环：黑夜君临</string>
+  <string>黑神话：悟空</string>
 </ArrayOfString>")]
         public global::System.Collections.Specialized.StringCollection SessColumnDescs {
             get {
