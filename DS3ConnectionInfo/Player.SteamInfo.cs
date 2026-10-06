@@ -31,7 +31,8 @@ namespace DS3ConnectionInfo
             Detail = UiText.Current[key] + ": " + (minutes.HasValue ? Text : UiText.Current[listed ? "PlaytimeHidden" : "GameUnknown"])
                 + (ExceedsDs3 ? " — " + UiText.Current["MoreThanDs3"] : "")
                 + (info == null ? "" : "\n" + info.Source + ": " + UiText.Current["Query" + info.GamesStatus]
-                    + (info.GamesHttpStatus.HasValue ? " (HTTP " + info.GamesHttpStatus.Value + ")" : ""))
+                    + (info.GamesHttpStatus.HasValue ? " (HTTP " + info.GamesHttpStatus.Value + ")" : "")
+                    + "\n" + info.NetworkRoute + (info.GamesDiagnostic == null ? "" : "\n" + info.GamesDiagnostic))
                 + (steamId == 0 ? "" : "\nSteam ID: " + steamId.ToString(CultureInfo.InvariantCulture));
         }
     }
@@ -52,7 +53,8 @@ namespace DS3ConnectionInfo
         public string SteamPrivacyDetail => UiText.Current["Description20"]
             + "\nSteam ID: " + SteamId64.ToString(CultureInfo.InvariantCulture)
             + (steamInfo == null ? "" : "\n" + steamInfo.Source + ": " + UiText.Current["Query" + steamInfo.ProfileStatus]
-                + (steamInfo.ProfileHttpStatus.HasValue ? " (HTTP " + steamInfo.ProfileHttpStatus.Value + ")" : ""));
+                + (steamInfo.ProfileHttpStatus.HasValue ? " (HTTP " + steamInfo.ProfileHttpStatus.Value + ")" : "")
+                + "\n" + steamInfo.NetworkRoute + (steamInfo.ProfileDiagnostic == null ? "" : "\n" + steamInfo.ProfileDiagnostic));
         public SteamGameBadge EldenRingBadge => new SteamGameBadge(1245620, steamInfo, SteamId64);
         public SteamGameBadge NightreignBadge => new SteamGameBadge(2622380, steamInfo, SteamId64);
         public SteamGameBadge WukongBadge => new SteamGameBadge(2358720, steamInfo, SteamId64);
@@ -71,9 +73,12 @@ namespace DS3ConnectionInfo
                 steamInfo = await steamApi.GetAsync(SteamId64);
                 nextSteamQueryUtc = DateTime.UtcNow.AddMinutes(steamInfo.ProfileFailed || steamInfo.GamesFailed ? 1 : 10);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                steamInfo = new SteamProfileInfo { ProfileFailed = true, GamesFailed = true, ProfileStatus = SteamQueryStatus.InvalidResponse, GamesStatus = SteamQueryStatus.InvalidResponse, Source = "Steam query" };
+                steamInfo = new SteamProfileInfo { ProfileFailed = true, GamesFailed = true,
+                    ProfileStatus = SteamQueryStatus.InvalidResponse, GamesStatus = SteamQueryStatus.InvalidResponse,
+                    Source = "Steam query", ProfileDiagnostic = SteamProfileApi.NetworkDiagnostic(ex),
+                    GamesDiagnostic = SteamProfileApi.NetworkDiagnostic(ex) };
                 nextSteamQueryUtc = DateTime.UtcNow.AddMinutes(1);
             }
             finally { if (entered) SteamQueries.Release(); steamQueryRunning = false; }

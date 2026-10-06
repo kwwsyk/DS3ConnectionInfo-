@@ -27,3 +27,22 @@ Windows 下运行 BUILDING.md 的回归命令。SteamInfoTests 使用模拟 HTTP
 窗口中悬停账号公开性或游戏字段，可查看实际查询源（XML / Web API）、目标 Steam ID、查询状态和 HTTP 状态码。网络失败、超时、HTTP错误、需登录、响应异常分别显示，不再统一吞成问号。? 只表示响应中没有足够可见数据，不能说明账号私密。
 
 资料公开与游戏详情公开分别控制。即使资料 XML 成功，游戏 XML 也可能跳转登录页，此时显示“需登录”；没有可靠的匿名游戏列表时，不伪造时长。免 Key 模式的可用性不能保证；配置个人 Key 可切换官方 API，但目标游戏详情仍须可见。
+
+## 浏览器经代理能访问，但程序显示网络失败
+
+程序默认使用 .NET Framework 的 Windows Internet 代理设置，这可能与浏览器扩展、另一个用户的配置或本地代理软件不同。可设置独立的 HTTP 代理覆盖默认设置（适用于 XML 和 Web API）：
+
+```powershell
+# 7890 仅为示例，必须替换成代理软件实际的 HTTP / mixed 端口。
+[Environment]::SetEnvironmentVariable("DS3_STEAM_PROXY", "http://127.0.0.1:7890", "User")
+```
+
+完全退出程序及启动它的 Visual Studio/终端后重新打开。代理软件必须处于运行状态，配置地址为 HTTP 代理地址；即使目标为 HTTPS，仍使用 http://127.0.0.1:端口 来建立 CONNECT 隧道。当前 .NET Framework 路径不支持 socks5:// 配置，不接收带凭据或路径的代理 URL，不关闭证书验证，也不自动扫描本机代理端口。
+
+恢复 Windows 默认代理设置：
+
+```powershell
+[Environment]::SetEnvironmentVariable("DS3_STEAM_PROXY", $null, "User")
+```
+
+悬停字段可查看网络路径和底层错误类型/代码。NameResolutionFailure 表示域名解析失败，ProxyNameResolutionFailure 表示代理域名解析失败，ConnectionRefused 表示连接被拒绝（使用本地代理时请先检查端口和进程），TrustFailure / AuthenticationException 指向 TLS/证书问题。诊断不会输出原始异常消息、API Key 或代理凭据。连接成功后，游戏 XML 仍可能显示“需登录”，这是独立的匿名数据可见性限制。

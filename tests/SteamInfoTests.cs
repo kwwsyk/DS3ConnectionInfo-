@@ -20,6 +20,19 @@ internal static class SteamInfoTests
     internal static void Run(Action<bool, string> check)
     {
         UiText.Current.SelectLanguage("zh-CN");
+        using (var defaultClient = SteamProfileApi.CreateNetworkClient(null))
+            check(defaultClient.Timeout==TimeSpan.FromSeconds(15),"default network client keeps bounded timeout");
+        using (var proxyClient = SteamProfileApi.CreateNetworkClient("http://127.0.0.1:7890"))
+            check(proxyClient.DefaultRequestHeaders.UserAgent.ToString().Contains("DS3ConnectionInfo"),"explicit HTTP proxy client can be configured");
+        foreach (string invalid in new[] { "socks5://127.0.0.1:7890", "http://user:secret@127.0.0.1:7890", "http://127.0.0.1:7890/path" })
+        {
+            bool rejected=false;
+            try { using(var ignored=SteamProfileApi.CreateNetworkClient(invalid)) {} }
+            catch(ArgumentException ex) { rejected=!ex.Message.Contains("secret"); }
+            check(rejected,"unsupported or credential-bearing proxy rejected safely");
+        }
+        string diagnostic=SteamProfileApi.NetworkDiagnostic(new HttpRequestException("sensitive fixture",new WebException("secret",WebExceptionStatus.NameResolutionFailure)));
+        check(diagnostic.Contains("NameResolutionFailure") && !diagnostic.Contains("secret") && !diagnostic.Contains("sensitive"),"DNS reason reported without exception messages");
         var handler = new FixtureHandler();
         handler.Reply = request =>
         {

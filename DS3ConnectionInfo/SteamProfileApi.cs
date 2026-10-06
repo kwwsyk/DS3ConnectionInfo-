@@ -5,6 +5,9 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Net;
+using System.Net.Sockets;
+using System.Security.Authentication;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Xml;
@@ -22,6 +25,9 @@ namespace DS3ConnectionInfo
         public int? ProfileHttpStatus { get; set; }
         public int? GamesHttpStatus { get; set; }
         public string Source { get; set; }
+        public string NetworkRoute { get; set; }
+        public string ProfileDiagnostic { get; set; }
+        public string GamesDiagnostic { get; set; }
         public bool ProfileFailed { get; set; }
         public bool GamesFailed { get; set; }
         public bool GamesVisible { get; set; }
@@ -32,17 +38,50 @@ namespace DS3ConnectionInfo
     // Injected transport allows offline fixture tests; production uses one shared client.
     public sealed class SteamProfileApi
     {
-        private static readonly HttpClient SharedHttp = new HttpClient
+        private static readonly Lazy<HttpClient> SharedHttp = new Lazy<HttpClient>(() =>
+            CreateNetworkClient(Environment.GetEnvironmentVariable("DS3_STEAM_PROXY")));
+
+        // .NET Framework uses Windows Internet options by default, which need not
+        // match a browser extension or another account's proxy configuration.
+        public static HttpClient CreateNetworkClient(string proxyAddress)
         {
-            Timeout = TimeSpan.FromSeconds(15),
-            MaxResponseContentBufferSize = 8 * 1024 * 1024
-        };
+            var handler = new HttpClientHandler
+            {
+                UseProxy = true,
+                AutomaticDecompression = DecompressionMethods.GZip | DecompressionMethods.Deflate
+            };
+            if (!string.IsNullOrWhiteSpace(proxyAddress))
+            {
+                Uri proxy;
+                if (!Uri.TryCreate(proxyAddress.Trim(), UriKind.Absolute, out proxy)
+                    || proxy.Scheme != Uri.UriSchemeHttp || string.IsNullOrEmpty(proxy.Host)
+                    || !string.IsNullOrEmpty(proxy.UserInfo) || proxy.AbsolutePath != "/"
+                    || !string.IsNullOrEmpty(proxy.Query) || !string.IsNullOrEmpty(proxy.Fragment))
+                {
+                    handler.Dispose();
+                    // Do not include proxy URL, credentials or API key in errors.
+                    throw new ArgumentException("DS3_STEAM_PROXY must be an HTTP proxy URL without credentials or path.");
+                }
+                handler.Proxy = new WebProxy(proxy);
+            }
+            var client = new HttpClient(handler)
+            {
+                Timeout = TimeSpan.FromSeconds(15),
+                MaxResponseContentBufferSize = 8 * 1024 * 1024
+            };
+            client.DefaultRequestHeaders.UserAgent.ParseAdd("DS3ConnectionInfo/4.5");
+            return client;
+        }
         private readonly HttpClient http;
         private readonly string key;
+        private readonly string route;
         public SteamProfileApi(string apiKey, HttpClient client = null)
         {
             key = (apiKey ?? "").Trim();
-            http = client ?? SharedHttp;
+            route = client != null ? "Injected transport"
+                : string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("DS3_STEAM_PROXY"))
+                    ? "Windows default proxy / direct" : "DS3_STEAM_PROXY (HTTP)";
+            http = client ?? SharedHttp.Value;
         }
 
         public async Task<SteamProfileInfo> GetAsync(ulong steamId, CancellationToken token = default(CancellationToken))
@@ -50,7 +89,7 @@ namespace DS3ConnectionInfo
             if (steamId == 0) throw new ArgumentException("Invalid Steam ID.");
             string id = steamId.ToString(CultureInfo.InvariantCulture);
             string profile = "https://steamcommunity.com/profiles/" + id + "/";
-            var result = new SteamProfileInfo { Approximate = key.Length == 0, Source = key.Length == 0 ? "Steam Community XML" : "Steam Web API" };
+            var result = new SteamProfileInfo { Approximate = key.Length == 0, Source = key.Length == 0 ? "Steam Community XML" : "Steam Web API", NetworkRoute = route };
             try
             {
                 if (key.Length == 0)
@@ -82,6 +121,7 @@ namespace DS3ConnectionInfo
                 result.ProfileFailed = true;
                 result.ProfileStatus = ErrorStatus(ex);
                 result.ProfileHttpStatus = (ex as SteamReadException)?.HttpStatus;
+                result.ProfileDiagnostic = NetworkDiagnostic(ex);
             }
             if (result.VisibilityState.HasValue) result.ProfileStatus = SteamQueryStatus.Available;
 
@@ -128,6 +168,7 @@ namespace DS3ConnectionInfo
                 result.GamesFailed = true;
                 result.GamesStatus = ErrorStatus(ex);
                 result.GamesHttpStatus = (ex as SteamReadException)?.HttpStatus;
+                result.GamesDiagnostic = NetworkDiagnostic(ex);
             }
             if (result.GamesVisible) result.GamesStatus = SteamQueryStatus.Available;
             return result;
@@ -139,6 +180,22 @@ namespace DS3ConnectionInfo
             internal int? HttpStatus { get; }
             internal SteamReadException(SteamQueryStatus status, int? httpStatus = null)
             { Status = status; HttpStatus = httpStatus; }
+        }
+        // Report only exception types and stable error codes, never raw messages
+        // (which may contain URLs or credentials from a proxy/network provider).
+        public static string NetworkDiagnostic(Exception ex)
+        {
+            var details = new List<string>();
+            for (int depth = 0; ex != null && depth < 6; depth++, ex = ex.InnerException)
+            {
+                var web = ex as WebException;
+                var socket = ex as SocketException;
+                details.Add(web != null ? "WebException: " + web.Status
+                    : socket != null ? "SocketException: " + socket.SocketErrorCode
+                    : ex is AuthenticationException ? "AuthenticationException (TLS)"
+                    : ex.GetType().Name);
+            }
+            return string.Join(" -> ", details);
         }
         private static SteamQueryStatus ErrorStatus(Exception ex) => ex is SteamReadException error ? error.Status
             : ex is HttpRequestException ? SteamQueryStatus.NetworkError : SteamQueryStatus.InvalidResponse;
