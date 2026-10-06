@@ -12,9 +12,16 @@ using System.Xml.Linq;
 
 namespace DS3ConnectionInfo
 {
+    public enum SteamQueryStatus { Unknown, Available, Timeout, NetworkError, LoginRequired, HttpError, InvalidResponse }
+
     public sealed class SteamProfileInfo
     {
         public int? VisibilityState { get; set; }
+        public SteamQueryStatus ProfileStatus { get; set; }
+        public SteamQueryStatus GamesStatus { get; set; }
+        public int? ProfileHttpStatus { get; set; }
+        public int? GamesHttpStatus { get; set; }
+        public string Source { get; set; }
         public bool ProfileFailed { get; set; }
         public bool GamesFailed { get; set; }
         public bool GamesVisible { get; set; }
@@ -43,7 +50,7 @@ namespace DS3ConnectionInfo
             if (steamId == 0) throw new ArgumentException("Invalid Steam ID.");
             string id = steamId.ToString(CultureInfo.InvariantCulture);
             string profile = "https://steamcommunity.com/profiles/" + id + "/";
-            var result = new SteamProfileInfo { Approximate = key.Length == 0 };
+            var result = new SteamProfileInfo { Approximate = key.Length == 0, Source = key.Length == 0 ? "Steam Community XML" : "Steam Web API" };
             try
             {
                 if (key.Length == 0)
@@ -69,8 +76,14 @@ namespace DS3ConnectionInfo
                     if (state >= 1 && state <= 3) result.VisibilityState = state;
                 }
             }
-            catch (OperationCanceledException) { token.ThrowIfCancellationRequested(); result.ProfileFailed = true; }
-            catch (Exception ex) when (ReadError(ex)) { result.ProfileFailed = true; }
+            catch (OperationCanceledException) { token.ThrowIfCancellationRequested(); result.ProfileFailed = true; result.ProfileStatus = SteamQueryStatus.Timeout; }
+            catch (Exception ex) when (ReadError(ex))
+            {
+                result.ProfileFailed = true;
+                result.ProfileStatus = ErrorStatus(ex);
+                result.ProfileHttpStatus = (ex as SteamReadException)?.HttpStatus;
+            }
+            if (result.VisibilityState.HasValue) result.ProfileStatus = SteamQueryStatus.Available;
 
             try
             {
@@ -109,9 +122,30 @@ namespace DS3ConnectionInfo
                     }
                 }
             }
-            catch (OperationCanceledException) { token.ThrowIfCancellationRequested(); result.GamesFailed = true; }
-            catch (Exception ex) when (ReadError(ex)) { result.GamesFailed = true; }
+            catch (OperationCanceledException) { token.ThrowIfCancellationRequested(); result.GamesFailed = true; result.GamesStatus = SteamQueryStatus.Timeout; }
+            catch (Exception ex) when (ReadError(ex))
+            {
+                result.GamesFailed = true;
+                result.GamesStatus = ErrorStatus(ex);
+                result.GamesHttpStatus = (ex as SteamReadException)?.HttpStatus;
+            }
+            if (result.GamesVisible) result.GamesStatus = SteamQueryStatus.Available;
             return result;
+        }
+
+        private sealed class SteamReadException : IOException
+        {
+            internal SteamQueryStatus Status { get; }
+            internal int? HttpStatus { get; }
+            internal SteamReadException(SteamQueryStatus status, int? httpStatus = null)
+            { Status = status; HttpStatus = httpStatus; }
+        }
+        private static SteamQueryStatus ErrorStatus(Exception ex) => ex is SteamReadException error ? error.Status
+            : ex is HttpRequestException ? SteamQueryStatus.NetworkError : SteamQueryStatus.InvalidResponse;
+        private static void CheckHttp(HttpResponseMessage response)
+        {
+            if (!response.IsSuccessStatusCode)
+                throw new SteamReadException(SteamQueryStatus.HttpError, (int)response.StatusCode);
         }
 
         private static bool Wanted(uint app) => app == 374320 || app == 1245620 || app == 2622380 || app == 2358720;
@@ -125,7 +159,7 @@ namespace DS3ConnectionInfo
                 request.Headers.Add("x-webapi-key", key);
                 using (var response = await http.SendAsync(request, token).ConfigureAwait(false))
                 {
-                    response.EnsureSuccessStatusCode();
+                    CheckHttp(response);
                     return JObject.Parse(await response.Content.ReadAsStringAsync().ConfigureAwait(false));
                 }
             }
@@ -134,10 +168,11 @@ namespace DS3ConnectionInfo
         {
             using (var response = await http.GetAsync(url, token).ConfigureAwait(false))
             {
-                response.EnsureSuccessStatusCode();
+                CheckHttp(response);
                 Uri final = response.RequestMessage?.RequestUri;
                 if (final != null && (final.Host != "steamcommunity.com" || final.AbsolutePath.StartsWith("/login", StringComparison.OrdinalIgnoreCase)))
-                    throw new InvalidDataException("Community data unavailable.");
+                    throw new SteamReadException(final.AbsolutePath.StartsWith("/login", StringComparison.OrdinalIgnoreCase)
+                        ? SteamQueryStatus.LoginRequired : SteamQueryStatus.InvalidResponse);
                 string body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                 var settings = new XmlReaderSettings { DtdProcessing = DtdProcessing.Prohibit, XmlResolver = null, MaxCharactersInDocument = 8 * 1024 * 1024 };
                 using (var input = new StringReader(body))

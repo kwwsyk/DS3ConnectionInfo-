@@ -48,6 +48,28 @@ internal static class SteamInfoTests
                 : "<profile><steamID64>"+Id+"</steamID64><visibilityState>3</visibilityState></profile>");
             data = new SteamProfileApi(null,client).GetAsync(ulong.Parse(Id)).GetAwaiter().GetResult();
             check(data.VisibilityState==3 && data.GamesFailed && !data.Minutes.ContainsKey(1245620), "login HTML preserves public profile and unknown games");
+            handler.Reply = request =>
+            {
+                if (request.RequestUri.AbsolutePath.Contains("/games/"))
+                {
+                    var response = Response(request, "");
+                    response.RequestMessage = new HttpRequestMessage(HttpMethod.Get,"https://steamcommunity.com/login/?redir=games");
+                    return response;
+                }
+                return Response(request,"<profile><steamID64>"+Id+"</steamID64><visibilityState>3</visibilityState></profile>");
+            };
+            data = new SteamProfileApi(null,client).GetAsync(ulong.Parse(Id)).GetAwaiter().GetResult();
+            check(data.ProfileStatus==SteamQueryStatus.Available && data.GamesStatus==SteamQueryStatus.LoginRequired,
+                "login redirect has explicit reason independent of public profile");
+            check(new SteamGameBadge(1245620,data).Text==UiText.Current["QueryLoginRequired"],"login restriction is not an unexplained question mark");
+            handler.Reply = request => { throw new HttpRequestException("fixture network failure"); };
+            data = new SteamProfileApi(null,client).GetAsync(ulong.Parse(Id)).GetAwaiter().GetResult();
+            check(data.ProfileStatus==SteamQueryStatus.NetworkError && data.GamesStatus==SteamQueryStatus.NetworkError,
+                "network failures have explicit status");
+            handler.Reply = request => new HttpResponseMessage((HttpStatusCode)429) { Content=new StringContent(""), RequestMessage=request };
+            data = new SteamProfileApi(null,client).GetAsync(ulong.Parse(Id)).GetAwaiter().GetResult();
+            check(data.ProfileStatus==SteamQueryStatus.HttpError && data.ProfileHttpStatus==429 && data.GamesHttpStatus==429,
+                "HTTP status retained without leaking request credentials");
             handler.Reply = request => Response(request, "<profile><steamID64>1</steamID64><visibilityState>1</visibilityState></profile>");
             data = new SteamProfileApi(null,client).GetAsync(ulong.Parse(Id)).GetAwaiter().GetResult();
             check(!data.VisibilityState.HasValue && data.ProfileFailed, "wrong account XML is rejected");
