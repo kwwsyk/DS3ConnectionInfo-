@@ -125,6 +125,8 @@
       <DependentUpon>OverlayWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="Player.cs" />
+    <Compile Include="Player.SteamInfo.cs" />
+    <Compile Include="SteamProfileApi.cs" />
     <Compile Include="Settings.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
@@ -197,6 +199,9 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <Resource Include="Resources\GameIcons\1245620.jpg" />
+    <Resource Include="Resources\GameIcons\2622380.jpg" />
+    <Resource Include="Resources\GameIcons\2358720.jpg" />
     <Content Include="Steamworks.NET.dll" />
     <Content Include="steam_api64.dll" />
   </ItemGroup>

@@ -7,7 +7,7 @@ namespace DS3ConnectionInfo
 {
     internal static class ColumnSettings
     {
-        internal const int Count = 20;
+        internal const int Count = 24;
 
         internal static StringCollection Normalize(StringCollection values)
         {

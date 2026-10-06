@@ -68,12 +68,12 @@ internal static class Program
         var old=new StringCollection(); for(int i=0;i<11;i++) old.Add(i%2==0 ? "Visible":"Hidden");
         var method=columns.GetMethod("Normalize",BindingFlags.NonPublic|BindingFlags.Static);
         var migrated=(StringCollection)method.Invoke(null,new object[]{old});
-        Check(migrated.Count==20 && Enumerable.Range(0,11).All(i=>migrated[i]==old[i]) &&
-            Enumerable.Range(11,9).All(i=>migrated[i]=="Hidden"),"old preferences preserved and nine new fields hidden by default");
+        Check(migrated.Count==24 && Enumerable.Range(0,11).All(i=>migrated[i]==old[i]) &&
+            Enumerable.Range(11,13).All(i=>migrated[i]=="Hidden"),"old preferences preserved and thirteen appended fields hidden by default");
         migrated[12]="Visible"; var again=(StringCollection)method.Invoke(null,new object[]{migrated});
-        Check(again[12]=="Visible" && again.Count==20,"migration preserves newly selected fields on subsequent runs");
+        Check(again[12]=="Visible" && again.Count==24,"migration preserves newly selected fields on subsequent runs");
         var empty=(StringCollection)method.Invoke(null,new object[]{null});
-        Check(empty.Count==20 && empty.Cast<string>().All(x=>x=="Hidden"),"missing preferences handled");
+        Check(empty.Count==24 && empty.Cast<string>().All(x=>x=="Hidden"),"missing preferences handled");
     }
     private static void StalePlayers()
     {
@@ -101,35 +101,39 @@ internal static class Program
         XNamespace x="http://schemas.microsoft.com/winfx/2006/xaml";
         var main=XDocument.Load(Path.Combine(root,"DS3ConnectionInfo/MainWindow.xaml"));
         var overlay=XDocument.Load(Path.Combine(root,"DS3ConnectionInfo/OverlayWindow.xaml"));
-        string[] expected={"等级","生命力","集中力","持久力","力量","敏捷","智力","信仰","当前血量 / 最大生命值"};
+        string[] expected={"等级","生命力","集中力","持久力","力量","敏捷","智力","信仰","当前血量 / 最大生命值","账号公开性","艾尔登法环","艾尔登法环：黑夜君临","黑神话：悟空"};
         var sessionCols=main.Descendants(w+"DataGrid.Columns").Single().Elements().ToArray();
         var overlayCols=overlay.Descendants(w+"DataGrid.Columns").Single().Elements().ToArray();
-        Check(sessionCols.Length==20 && overlayCols.Length==20 &&
+        Check(sessionCols.Length==24 && overlayCols.Length==24 &&
             sessionCols.Skip(11).Select(e=>ResolveText((string)e.Attribute("Header"))).SequenceEqual(expected) &&
             overlayCols.Skip(11).Select(e=>ResolveText((string)e.Attribute("Header"))).SequenceEqual(expected),"both grids append exactly the requested columns");
         foreach(var name in new[]{"cbColName","cbOColName"})
         {
             var items=main.Descendants(w+"ComboBox").Single(e=>((string)e.Attribute(x+"Name") ?? (string)e.Attribute("Name"))==name).Elements().Select(e=>ResolveText((string)e.Attribute("Content") ?? e.Value)).ToArray();
-            Check(items.Length==20 && items.Skip(11).SequenceEqual(expected),name+" uses matching column indexes");
+            Check(items.Length==24 && items.Skip(11).SequenceEqual(expected),name+" uses matching column indexes");
         }
-        Check(Settings.Default.SessColumnDescs.Count==20,"compiled field descriptions include appended fields");
+        Check(Settings.Default.SessColumnDescs.Count==24,"compiled field descriptions include appended fields");
     }
     private static void Render(string output)
     {
         if (Application.Current == null) {var app=new App(); app.InitializeComponent();}
         columns.GetMethod("EnsureCompatible",BindingFlags.Static|BindingFlags.NonPublic).Invoke(null,null);
-        var selected=new StringCollection(); for(int i=0;i<20;i++) selected.Add(i==0 || i==1 || i>=11 ? "Visible":"Hidden");
+        var selected=new StringCollection(); for(int i=0;i<24;i++) selected.Add(i==0 || i==1 || i>=11 ? "Visible":"Hidden");
         Settings.Default.OverlayColVisibility=selected;
         var window=new OverlayWindow();
         var grid=(DataGrid)window.FindName("dataGrid");
         var player=(Player)FormatterServices.GetUninitializedObject(typeof(Player));
         Fixture(800,1323); Set(player,"Attributes",PlayerAttributes.Read(0x1000,Read));
         Set(player,"CharSlot","1"); Set(player,"CharName","测试角色"); Set(player,"SteamName","Test"); Set(player,"TeamId",0);
+        var steam = new SteamProfileInfo { VisibilityState = 1 };
+        steam.Minutes[374320] = 600; steam.Minutes[1245620] = 1200;
+        steam.Minutes[2622380] = 300; steam.Minutes[2358720] = 0;
+        typeof(Player).GetField("steamInfo",BindingFlags.NonPublic|BindingFlags.Instance).SetValue(player,steam);
         grid.DataContext=new[]{player};
         grid.Width=1200; // Give the off-screen viewport room to realize every selected column.
         var content=(FrameworkElement)window.Content;
         content.Measure(new Size(2400,300)); content.Arrange(new Rect(content.DesiredSize)); content.UpdateLayout();
-        Check(grid.Columns.Count==20 && content.ActualWidth>0,"compiled overlay loads and binds sample attributes");
+        Check(grid.Columns.Count==24 && content.ActualWidth>0,"compiled overlay loads and binds sample attributes");
         var bitmap=new RenderTargetBitmap((int)Math.Ceiling(content.ActualWidth),(int)Math.Ceiling(content.ActualHeight),96,96,PixelFormats.Pbgra32);
         bitmap.Render(content); var encoder=new PngBitmapEncoder();encoder.Frames.Add(BitmapFrame.Create(bitmap));
         using(var file=File.Create(output)) encoder.Save(file);
@@ -194,6 +198,17 @@ internal static class Program
         var selector=(ComboBox)window.FindName("cbOColName");
         var visible=window.FindName("swOColVisible");
         var picker=window.FindName("fieldColorPicker");
+        for (int index=20; index<24; index++)
+        {
+            selector.SelectedIndex=index;
+            Check(grid.Columns[index].Visibility==Visibility.Collapsed,"new Steam field starts hidden after migration");
+            Set(visible,"IsOn",true);
+            Check(grid.Columns[index].Visibility==Visibility.Visible && overlayGrid.Columns[index].Visibility==Visibility.Visible,
+                "Steam field toggle shows both grids");
+            Set(visible,"IsOn",false);
+            Check(grid.Columns[index].Visibility==Visibility.Collapsed && overlayGrid.Columns[index].Visibility==Visibility.Collapsed,
+                "Steam field toggle hides both grids");
+        }
         selector.SelectedIndex=12;
         Check(grid.Columns[12].Visibility==Visibility.Visible && overlayGrid.Columns[12].Visibility==Visibility.Visible,
             "existing visible overlay fields appear in session list on upgrade");
@@ -307,7 +322,7 @@ internal static class Program
             if(args.Length==2 && args[0]=="--save-language") { UiText.Current.SelectLanguage(args[1]);Settings.Default.Save();return 0; }
             if(args.Length==2 && args[0]=="--check-language") {Check(UiText.Current.Language==args[1],"saved language restored in a new process");return 0;}
             if(args.Contains("--live")) {Live();return 0;}
-            Attributes();Migration();StalePlayers();ColumnLayout(args[0]);
+            SteamInfoTests.Run(Check);Attributes();Migration();StalePlayers();ColumnLayout(args[0]);
             if(args.Length>1) {Render(args[1]);Languages(Path.GetDirectoryName(args[1]));FieldOptions(args[0],Path.GetDirectoryName(args[1]));}
             Console.WriteLine(count+" checks passed");return 0;
         }

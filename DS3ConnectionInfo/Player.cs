@@ -12,7 +12,7 @@ using System.Text.RegularExpressions;
 
 namespace DS3ConnectionInfo
 {
-    public class Player
+    public partial class Player
     {
 
 

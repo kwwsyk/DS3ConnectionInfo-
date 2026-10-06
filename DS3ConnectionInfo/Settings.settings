@@ -118,6 +118,10 @@
   &lt;string&gt;智力：读取本地同步的角色数据。&lt;/string&gt;
   &lt;string&gt;信仰：读取本地同步的角色数据。&lt;/string&gt;
   &lt;string&gt;角色当前血量 / 当前有效最大生命值；未加载时显示 —。&lt;/string&gt;
+  &lt;string&gt;账号公开性&lt;/string&gt;
+  &lt;string&gt;艾尔登法环&lt;/string&gt;
+  &lt;string&gt;艾尔登法环：黑夜君临&lt;/string&gt;
+  &lt;string&gt;黑神话：悟空&lt;/string&gt;
 &lt;/ArrayOfString&gt;</Value>
     </Setting>
     <Setting Name="SessColumnVisibility" Type="System.Collections.Specialized.StringCollection" Scope="User">
